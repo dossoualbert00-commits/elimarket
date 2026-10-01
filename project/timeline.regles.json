@@ -1,0 +1,128 @@
+{
+  "_doc": "HOOK 0:00-0:15 du Reel « TACHÉE EN CLASSE — PARLONS DES RÈGLES ». Facebook Reels 9:16. Deux personnages (Koffi, Amina) en style podcast. Les durées sont recalibrées automatiquement sur les enregistrements réels : le moteur cale chaque réplique dans son plan et avertit si un plan est trop court.",
+  "meta": {
+    "title": "Tachee en classe - parlons des regles",
+    "handle": "@elimarket.africa",
+    "keywords": [
+      "règles",
+      "honte",
+      "peur",
+      "classe"
+    ],
+    "brand": {
+      "accent": "#FFC300"
+    }
+  },
+  "cast": {
+    "KOFFI": {
+      "voice": "masculine, posée et grave, débit lent",
+      "gender": "masculine",
+      "color": "#FFC300"
+    },
+    "AMINA": {
+      "voice": "féminine, complice puis grave",
+      "gender": "feminine",
+      "color": "#5FD3E8"
+    }
+  },
+  "audio": {
+    "music": "audio/bed_regles.wav",
+    "music_gain_db": -15.0,
+    "target_lufs": -14.0
+  },
+  "subtitles": {
+    "enabled": true,
+    "max_words": 4,
+    "show_speaker": true,
+    "max_tempo": 1.22,
+    "line_gap": 0.14
+  },
+  "scenes": [
+    {
+      "image": "images/01-koffi.png",
+      "dur": 2.5,
+      "motion": "zoom_in",
+      "transition": "cut",
+      "sfx": "heartbeat",
+      "text": {
+        "value": "PARLONS DES RÈGLES",
+        "style": "kicker"
+      },
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Mariam, 14 ans, Cotonou.",
+          "file": "audio/koffi_01.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/01-koffi.png",
+      "dur": 3.1,
+      "motion": "pan_left",
+      "transition": "cut",
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Elle se lève en classe, tache derrière l'uniforme.",
+          "file": "audio/koffi_02.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/02-amina.png",
+      "dur": 2.2,
+      "motion": "zoom_in",
+      "transition": "cut",
+      "sfx": "heartbeat",
+      "lines": [
+        {
+          "who": "AMINA",
+          "text": "Et toute la classe rit.",
+          "file": "audio/amina_01.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/02-amina.png",
+      "dur": 2.9,
+      "motion": "pull_soft",
+      "transition": "cut",
+      "lines": [
+        {
+          "who": "AMINA",
+          "text": "Tu connais cette peur, toi aussi, hein ?",
+          "file": "audio/amina_02.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/01-koffi.png",
+      "dur": 2.5,
+      "motion": "parallax_push",
+      "transition": "cut",
+      "sfx": "riser",
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Aujourd'hui, on met fin à cette honte.",
+          "file": "audio/koffi_03.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/03-titre.png",
+      "dur": 2.4,
+      "motion": "hold_breath",
+      "transition": "cut",
+      "sfx": "impact",
+      "text": {
+        "value": "TACHÉE EN CLASSE.\nLA HONTE ? NON.\nPARLONS DES RÈGLES",
+        "style": "cta",
+        "emph": [
+          "PARLONS DES RÈGLES"
+        ]
+      }
+    }
+  ]
+}

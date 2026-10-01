@@ -430,7 +430,8 @@ def cue_timings(chunks: list[list[str]], start: float, end: float,
 
 def fit_size(text: str, font_px: int, max_width: int, min_ratio: float = 0.58) -> int:
     """Réduit la taille d'un texte incrusté pour qu'il tienne dans la largeur utile."""
-    est = 0.60 * font_px * len(text)          # approximation Montserrat/Inter extra-bold
+    longest = max((len(l) for l in text.split("\n")), default=len(text))
+    est = 0.60 * font_px * longest            # approximation Montserrat/Inter extra-bold
     if est <= max_width:
         return font_px
     return max(int(font_px * max_width / est), int(font_px * min_ratio))
@@ -590,6 +591,7 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
     events: list[str] = []
     for p in sorted(pending, key=lambda p: p["start"]):
         body = p["text"]
+        body = body.replace("\n", "\\N")      # saut de ligne maîtrisé (titres)
         if p.get("size"):
             body = f"{{\\fs{p['size']}}}" + body
         if p.get("color"):

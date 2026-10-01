@@ -105,10 +105,37 @@ def click(dur: float = 0.12) -> np.ndarray:
     return np.stack([sig, sig], axis=1) * 0.4
 
 
+def heartbeat(dur: float = 1.2, bpm: float = 88.0) -> np.ndarray:
+    """
+    Battement de cœur doux (lub-dub) : utilisé comme pulsation discrète sous un propos
+    sensible, ou en nappe rythmique sur un plan de tension. Boucle proprement.
+    """
+    n = int(dur * SR)
+    out = np.zeros(n)
+    beat = 60.0 / bpm
+    pos = 0.25
+    while pos < dur - 0.25:
+        for offset, gain, f0 in ((0.0, 1.0, 62.0), (0.26, 0.62, 52.0)):
+            start = int((pos + offset) * SR)
+            if start >= n:
+                break
+            d = 0.32
+            m = min(int(d * SR), n - start)
+            t = np.arange(m) / SR
+            thump = (np.sin(2 * np.pi * (f0 * np.exp(-t * 9) + 32) * t)
+                     * np.exp(-t * 9.5)) * gain
+            out[start:start + m] += thump
+        pos += beat
+    out = np.convolve(out, np.hanning(180) / np.hanning(180).sum(), mode="same")  # adoucit
+    if np.max(np.abs(out)) > 0:
+        out /= np.max(np.abs(out))
+    return np.stack([out, out], axis=1) * 0.75
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     items = {"whoosh": whoosh(), "riser": riser(), "impact": impact(),
-             "pop": pop(), "click": click()}
+             "pop": pop(), "click": click(), "heartbeat": heartbeat()}
     for k, v in items.items():
         p = os.path.join(OUT, f"sfx_{k}.wav")
         write_wav(p, v)
