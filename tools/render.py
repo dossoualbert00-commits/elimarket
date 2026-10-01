@@ -153,6 +153,7 @@ class Scene:
     vo: str = ""                    # texte de la voix off (sert aux sous-titres)
     vo_file: str = ""
     sfx: str = ""                   # whoosh | riser | impact | none
+    note: str = ""                  # mention discrète en bas (transparence, source…)
     lines: list[dict] = field(default_factory=list)           # répliques (podcast / fiction)
     lines_planned: list[dict] = field(default_factory=list)   # répliques placées sur la timeline
     start: float = 0.0              # calculé
@@ -187,6 +188,7 @@ def load_timeline(path: str) -> dict:
             vo=s.get("vo", ""),
             vo_file=resolve(s.get("vo_file", "")),
             sfx=s.get("sfx", ""),
+            note=s.get("note", ""),
             lines=[{"who": ln.get("who", ""),
                     "text": ln.get("text", ""),
                     "file": resolve(ln.get("file", "")),
@@ -463,6 +465,7 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
         ("Sub", f_body, size(78), hex_to_ass(white), hex_to_ass(accent), 7),
         ("CTA", f_title, size(94), hex_to_ass(white), hex_to_ass(accent), 8),
         ("Speaker", f_title, size(50), hex_to_ass(accent), hex_to_ass(white), 6),
+        ("Note", f_body, size(42), hex_to_ass("#D7DEE8"), hex_to_ass("#D7DEE8"), 6),
     ]
     head = [
         "[Script Info]", "ScriptType: v4.00+", f"PlayResX: {fmt.w}", f"PlayResY: {fmt.h}",
@@ -511,6 +514,16 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
     windows = visible_windows(tl["scenes"])
     key = [k.lower() for k in tl["meta"].get("keywords", [])]
     for sc, (w0, w1) in zip(tl["scenes"], windows):
+        # 0. Mention discrète (transparence, source, avertissement) : en bas d'écran,
+        #    elle réserve sa hauteur pour que le reste du texte remonte d'autant.
+        note_lift = 0
+        if sc.note:
+            n_note = max(1, len(sc.note.split("\n")))
+            note_h = int(size(42) * 1.35 * n_note)
+            note_lift = note_h + int(fmt.h * 0.022)
+            add("Note", w0 + 0.08, w1, sc.note,
+                fmt.h - fmt.bottom - note_h // 2 - int(fmt.h * 0.006))
+
         # 1. Textes incrustés (hook, corps, CTA) — affichés pendant la fenêtre visible du plan
         if sc.text:
             room = fmt.w - 2 * fmt.side
@@ -520,7 +533,10 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
                     sc.emph, size=fs)
             elif sc.text_style == "cta":
                 fs = fit_size(sc.text, size(94), room)
-                add("CTA", w0 + 0.08, w1, sc.text, fmt.h - fmt.bottom - int(fmt.h * 0.05),
+                n_lines = max(1, len(sc.text.split("\n")))
+                block_h = int(fs * 1.22 * n_lines)          # hauteur réelle du bloc de titre
+                y = fmt.h - fmt.bottom - note_lift - block_h // 2 - int(fmt.h * 0.03)
+                add("CTA", w0 + 0.08, w1, sc.text, max(y, fmt.top + int(fmt.h * 0.40)),
                     sc.emph, size=fs)
                 report["has_cta"] = True
             elif sc.text_style == "kicker":
@@ -535,7 +551,10 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
         sub_y = int(fmt.h * fmt.sub_y)
         if sc.text and sc.text_style == "cta":
             sub_y = min(sub_y, fmt.h - fmt.bottom - int(fmt.h * 0.05) - int(fmt.h * 0.085))
+        if sc.note:
+            sub_y = min(sub_y, fmt.h - fmt.bottom - int(size(42) * 1.6))
         sub_y = max(sub_y, fmt.top + int(fmt.h * 0.34))
+
 
         # 2a. Format podcast / fiction : une réplique = un badge de personnage + des sous-titres
         if sub_cfg.get("enabled", True) and sc.lines_planned:

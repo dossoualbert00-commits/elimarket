@@ -1,5 +1,5 @@
 {
-  "_doc": "HOOK 0:00-0:15 du Reel « TACHÉE EN CLASSE — PARLONS DES RÈGLES ». Facebook Reels 9:16. Deux personnages (Koffi, Amina) en style podcast. Les durées sont recalibrées automatiquement sur les enregistrements réels : le moteur cale chaque réplique dans son plan et avertit si un plan est trop court.",
+  "_doc": "HOOK 0:00-0:15 du Reel « TACHÉE EN CLASSE — PARLONS DES RÈGLES ». Facebook Reels 9:16. Deux personnages (Koffi, Amina) en style podcast. Mariam est un personnage illustratif : le cas est courant, donc la carte titre porte une mention de transparence (champ « note »).",
   "meta": {
     "title": "Tachee en classe - parlons des regles",
     "handle": "@elimarket.africa",
@@ -7,7 +7,8 @@
       "règles",
       "honte",
       "peur",
-      "classe"
+      "classe",
+      "garçons"
     ],
     "brand": {
       "accent": "#FFC300"
@@ -122,7 +123,8 @@
         "emph": [
           "PARLONS DES RÈGLES"
         ]
-      }
+      },
+      "note": "Pour les filles et les garçons\nSituation courante — personnage illustratif"
     }
   ]
 }
