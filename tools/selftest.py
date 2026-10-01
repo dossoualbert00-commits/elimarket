@@ -7,11 +7,12 @@ rend une vidéo 9:16 et lance le contrôle qualité. Aucune ressource externe re
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
-import shutil
 import subprocess
 import sys
+import wave
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -47,7 +48,86 @@ def synth_images() -> list[str]:
     return paths
 
 
+def pseudo_voice(path: str, base: float, dur: float, seed: int = 0) -> str:
+    """Fausse voix au débit parole (syllabes) : sert à tester le calage des répliques."""
+    import numpy as np
+    sr = 48000
+    rng = np.random.default_rng(seed)
+    n = int(dur * sr)
+    t = np.arange(n) / sr
+    syll = np.zeros(n)
+    pos = 0.0
+    while pos < dur:                      # alternance syllabe / silence, comme de la parole
+        d = float(rng.uniform(0.13, 0.26))
+        s0, s1 = int(pos * sr), min(int((pos + d) * sr), n)
+        if s1 > s0:
+            env = np.hanning(max(s1 - s0, 2))
+            f0 = base * float(rng.uniform(0.9, 1.15))
+            seg = sum(np.sin(2 * np.pi * f0 * k * t[s0:s1]) / k
+                      for k in (1, 2, 3, 5)) * env
+            syll[s0:s1] += seg
+        pos += d + float(rng.uniform(0.04, 0.12))
+    syll /= max(float(np.max(np.abs(syll))), 1e-6)
+    pcm = (syll * 0.7 * 32767).astype("<i2")
+    with wave.open(path, "wb") as fh:
+        fh.setnchannels(1); fh.setsampwidth(2); fh.setframerate(sr)
+        fh.writeframes(pcm.tobytes())
+    return path
+
+
+def dialogue_timeline() -> dict:
+    """Scénario de test au format podcast : deux personnages qui se répondent."""
+    plan = [
+        ("AWA", "Je commande en ligne et je me fais arnaquer, encore", 3.0, "hook", "Le cauchemar du paiement en ligne"),
+        ("MOUSSA", "Attends, tu as payé avant de vérifier le vendeur ?", 2.6, "body", ""),
+        ("AWA", "Oui, et le vendeur a disparu le lendemain", 2.6, "body", ""),
+        ("MOUSSA", "Sur elimarket, le vendeur est vérifié avant de publier", 3.2, "body", ""),
+        ("AWA", "Et mon argent, il est protégé comment ?", 2.6, "body", ""),
+        ("MOUSSA", "Il reste bloqué jusqu'à la réception du colis", 3.0, "body", ""),
+        ("NARRATEUR", "Rejoins elimarket point africa, inscription gratuite", 3.2, "cta", "Rejoignez elimarket.africa"),
+    ]
+    scenes = []
+    for i, (who, text, dur, style, onscreen) in enumerate(plan):
+        # durée de la réplique cohérente avec sa longueur (comme un vrai enregistrement)
+        vdur = round(max(1.0, len(text.split()) / 2.6 * 0.92), 2)
+        dur = round(max(dur, vdur + 0.4), 2)   # un plan dure au moins sa réplique + 0,4 s
+        vfile = pseudo_voice(os.path.join(TMP, f"voix{i:02d}_{who.lower()}.wav"),
+                             {"AWA": 210.0, "MOUSSA": 120.0, "NARRATEUR": 165.0}[who], vdur, i + 1)
+        scene = {
+            "image": f"img{i % 6 + 1}.jpg",
+            "dur": dur,
+            "motion": "auto",
+            "transition": "fade" if i % 2 else "cut",
+            "sfx": "whoosh" if i % 3 == 2 else ("impact" if i == 0 else ""),
+            "lines": [{"who": who, "text": text, "file": os.path.relpath(vfile, TMP),
+                       "dur": vdur}],
+        }
+        if onscreen:
+            scene["text"] = {"value": onscreen, "style": style, "emph": ["elimarket"]}
+        scenes.append(scene)
+    return {
+        "meta": {"title": "Auto-test podcast", "handle": "@elimarket.africa",
+                 "keywords": ["vérifié", "protégé", "colis"],
+                 "brand": {"accent": "#FFC300"}},
+        "cast": {
+            "AWA": {"voice": "féminine, 26 ans, énervée mais complice", "gender": "feminine",
+                    "color": "#7ED0FF"},
+            "MOUSSA": {"voice": "masculine, 30 ans, posée et rassurante", "gender": "masculine",
+                       "color": "#FFC300"},
+            "NARRATEUR": {"voice": "neutre, claire", "gender": "masculine", "color": "#FFFFFF"},
+        },
+        "audio": {"music": os.path.relpath(os.path.join(TMP, "bed.wav"), TMP),
+                  "music_gain_db": -14.0},
+        "subtitles": {"enabled": True, "max_words": 4, "show_speaker": True, "max_tempo": 1.18},
+        "scenes": scenes,
+    }
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description="Auto-test de la chaîne de montage")
+    ap.add_argument("--dialogue", action="store_true",
+                    help="tester le format podcast (personnages + répliques)")
+    args = ap.parse_args()
     print("== 1/4 Images de test ==")
     imgs = synth_images()
     print(f"   {len(imgs)} images générées")
@@ -60,7 +140,7 @@ def main() -> None:
                     "--out", music], check=True)
 
     print("== 3/4 Scénario de test + rendu ==")
-    timeline = {
+    timeline = dialogue_timeline() if args.dialogue else {
         "meta": {"title": "Auto-test moteur de montage", "handle": "@elimarket.africa",
                  "keywords": ["confiance", "vendeurs", "afrique"],
                  "brand": {"accent": "#FFC300"}},

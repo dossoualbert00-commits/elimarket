@@ -10,7 +10,9 @@ Copiez ce bloc, remplissez ce que vous savez, déposez les images dans `project/
 5. Scénario              : collez-le ici (ou dites « propose » et je rédige une version à valider,
                            sans inventer de chiffres ni de témoignages)
 6. Images                : nombre + ce qu'elles montrent (déposer dans project/images/)
-7. Voix off              : je génère une voix / vous fournissez un fichier / pas de voix
+7. Voix off              : je génère une voix / vous fournissez les fichiers / pas de voix
+   Si format podcast     : listez les personnages (nom, caractère, voix) + un fichier audio
+                           par réplique (c'est ce qui permet le calage et la synchro auto)
 8. Musique               : lit généré libre de droits (recommandé) / fichier fourni
 9. Contraintes de marque : couleurs, logo, mentions légales, interdits
 10. Échéance             : date et heure de publication

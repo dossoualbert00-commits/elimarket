@@ -44,6 +44,31 @@ python3 tools/qc.py project/output --frames
 
 Sorties dans `project/output/` : `*_9x16.mp4` (TikTok / Reels / Shorts), `*_4x5.mp4` (feed Facebook), `*_1x1.mp4`, `*_16x9.mp4` (YouTube), un `.srt` par format, et un `_report.json` (plan par plan + minutage des sous-titres).
 
+## 3 bis. Format podcast / personnages (Reels joués)
+
+Pour une vidéo où plusieurs personnages se répondent (style podcast ou mini-fiction) :
+
+1. Enregistrez **chaque réplique dans un fichier séparé** (un fichier par personnage et par réplique).
+   C'est ce qui permet au moteur de caler, synchroniser et mixer chaque voix automatiquement.
+2. Décrivez les personnages dans `cast` (nom, couleur de badge, type de voix).
+3. Dans chaque plan, ajoutez un bloc `lines` avec `who` (le personnage) et `file` (sa réplique).
+4. Voir l'exemple complet : [`project/timeline.podcast.example.json`](../project/timeline.podcast.example.json).
+
+```bash
+python3 tools/render.py project/timeline.podcast.json --aspects 9:16
+```
+
+Ce que le moteur fait alors, sans intervention :
+
+| Étape | Comportement |
+|---|---|
+| Calage | chaque réplique est placée dans la fenêtre visible de son plan ; si elle est trop longue, elle est accélérée légèrement (jusqu'à 1,25×, inaudible) et un conseil s'affiche avec la durée exacte à donner au plan |
+| Sous-titres | découpés depuis le texte de la réplique, donc **synchronisés sur le son**, 3 à 5 mots par affichage |
+| Badge de personnage | nom du personnage affiché au-dessus des sous-titres, couleur du `cast`, alterné gauche/droite selon qui parle |
+| Niveaux | chaque voix est égalisée (les personnages enregistrés séparément sonnent au même volume) |
+| Musique | descend automatiquement sous la voix (ducking ~18 dB) |
+| Diffusion | l'ensemble est normalisé à −14 LUFS |
+
 ## 4. Règles de montage appliquées automatiquement
 
 | Règle | Mise en œuvre |

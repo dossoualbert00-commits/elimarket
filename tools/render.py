@@ -153,6 +153,8 @@ class Scene:
     vo: str = ""                    # texte de la voix off (sert aux sous-titres)
     vo_file: str = ""
     sfx: str = ""                   # whoosh | riser | impact | none
+    lines: list[dict] = field(default_factory=list)           # répliques (podcast / fiction)
+    lines_planned: list[dict] = field(default_factory=list)   # répliques placées sur la timeline
     start: float = 0.0              # calculé
     motion_resolved: str = ""
 
@@ -185,6 +187,11 @@ def load_timeline(path: str) -> dict:
             vo=s.get("vo", ""),
             vo_file=resolve(s.get("vo_file", "")),
             sfx=s.get("sfx", ""),
+            lines=[{"who": ln.get("who", ""),
+                    "text": ln.get("text", ""),
+                    "file": resolve(ln.get("file", "")),
+                    "dur": float(ln.get("dur", 0) or 0),
+                    "gain_db": float(ln.get("gain_db", 0) or 0)} for ln in (s.get("lines") or [])],
         ))
     # Mouvement résolu + garde-fou anti-plan-statique
     for i, sc in enumerate(scenes):
@@ -207,12 +214,63 @@ def load_timeline(path: str) -> dict:
         t += sc.dur
     total = sum(s.dur for s in scenes) - sum(
         TRANSITIONS.get(s.transition, 0.0) for s in scenes[1:])
+    plan_dialogue(scenes, subs)
+    cast = raw.get("cast") or {}
+    for who in {ln["who"] for sc in scenes for ln in sc.lines}:
+        if who and who not in cast:
+            cast[who] = {}
     return {
-        "meta": meta, "audio": audio, "subtitles": subs, "scenes": scenes,
+        "meta": meta, "audio": audio, "subtitles": subs, "scenes": scenes, "cast": cast,
         "total": round(total, 3),
         "voiceover": resolve(audio.get("voiceover", "")),
         "music": resolve(audio.get("music", "")),
     }
+
+
+DIALOGUE_WARNINGS: list[str] = []
+
+
+def plan_dialogue(scenes: list[Scene], sub_cfg: dict) -> None:
+    """
+    Place les répliques d'un plan (format podcast / fiction) sur la timeline.
+
+    - la durée réelle du fichier audio prime ; sinon on estime 2,6 mots/s ;
+    - si les répliques ne rentrent pas dans la fenêtre visible du plan, on accélère
+      légèrement (atempo <= 1,18 : inaudible) puis on remonte le bloc dans la transition ;
+    - chaque réplique reçoit un début et une fin absolus, utilisés par le mixage
+      et par les sous-titres : la synchronisation est donc garantie avec le son.
+    """
+    max_speed = float(sub_cfg.get("max_tempo", 1.25))
+    gap = float(sub_cfg.get("line_gap", 0.16))
+    for sc, (w0, w1) in zip(scenes, visible_windows(scenes)):
+        if not sc.lines:
+            continue
+        durs = []
+        for ln in sc.lines:
+            d = ln["dur"]
+            if not d and ln["file"] and os.path.exists(ln["file"]):
+                d = probe(ln["file"]).get("duration", 0.0)
+            if not d:
+                d = max(0.9, len(ln["text"].split()) / 2.6)
+            durs.append(d)
+        window = max(w1 - w0, 0.5)
+        needed = sum(durs) + gap * (len(durs) - 1)
+        tempo = min(max_speed, max(1.0, needed / window))
+        scaled = [d / tempo for d in durs]
+        block = sum(scaled) + gap * (len(scaled) - 1)
+        start = w0 + 0.04 if block <= window else max(w0 - 0.14, w0 + 0.04 - (block - window))
+        t = start
+        for ln, d, orig in zip(sc.lines, scaled, durs):
+            if tempo >= max_speed and sum(scaled) + gap * (len(scaled) - 1) > window:
+                besoin = round(sum(durs) + gap * (len(durs) - 1) + 0.29, 2)
+                DIALOGUE_WARNINGS.append(
+                    f"plan {sc.index} : la réplique de {ln['who'] or 'voix'} ne tient pas "
+                    f"dans {window:.2f}s. Passez la durée du plan à {besoin:.2f}s "
+                    f"ou raccourcissez la réplique de "
+                    f"{max(1, round((sum(durs) + gap * (len(durs) - 1) - window) * 2.6))} mot(s).")
+            sc.lines_planned.append({**ln, "start": round(t, 3), "end": round(t + d, 3),
+                                     "tempo": round(orig / d, 4) if d else 1.0})
+            t += d + gap
 
 
 # ----------------------------------------------------------------------------
@@ -370,6 +428,14 @@ def cue_timings(chunks: list[list[str]], start: float, end: float,
     return times
 
 
+def fit_size(text: str, font_px: int, max_width: int, min_ratio: float = 0.58) -> int:
+    """Réduit la taille d'un texte incrusté pour qu'il tienne dans la largeur utile."""
+    est = 0.60 * font_px * len(text)          # approximation Montserrat/Inter extra-bold
+    if est <= max_width:
+        return font_px
+    return max(int(font_px * max_width / est), int(font_px * min_ratio))
+
+
 def ass_time(t: float) -> str:
     t = max(t, 0.0)
     return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:05.2f}"
@@ -378,6 +444,7 @@ def ass_time(t: float) -> str:
 def build_ass(tl: dict, fmt: Format, path: str) -> dict:
     """Écrit le fichier ASS (textes hook/CTA + sous-titres) et renvoie le rapport texte."""
     brand = tl["meta"].get("brand", {})
+    cast = tl.get("cast", {})
     accent = brand.get("accent", "#FFC300")
     white = "#FFFFFF"
     sub_cfg = tl["subtitles"]
@@ -394,6 +461,7 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
         ("Body", f_body, size(74), hex_to_ass(white), hex_to_ass(accent), 6),
         ("Sub", f_body, size(78), hex_to_ass(white), hex_to_ass(accent), 7),
         ("CTA", f_title, size(94), hex_to_ass(white), hex_to_ass(accent), 8),
+        ("Speaker", f_title, size(50), hex_to_ass(accent), hex_to_ass(white), 6),
     ]
     head = [
         "[Script Info]", "ScriptType: v4.00+", f"PlayResX: {fmt.w}", f"PlayResY: {fmt.h}",
@@ -404,11 +472,11 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
         "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
     ]
     for name, font, fsize, prim, sec, outline in styles:
-        box = "&H64000000" if name == "Sub" else "&H78000000"
-        border = 3 if name == "Sub" else 1  # sous-titres : léger bandeau pour la lisibilité
+        # contour épais + ombre portée : lisible sur n'importe quelle image, sans bandeau opaque
+        box = "&H96000000"
         head.append(
-            f"Style: {name},{font},{fsize},{prim},{sec},{hex_to_ass('#12161C')},{box},"
-            f"-1,0,0,0,100,100,0,0,{border},{outline},2,5,{fmt.side},{fmt.side},10,1")
+            f"Style: {name},{font},{fsize},{prim},{sec},{hex_to_ass('#0E1218')},{box},"
+            f"-1,0,0,0,100,100,0,0,1,{outline + 1},3,5,{fmt.side},{fmt.side},10,1")
     head += ["", "[Events]",
              "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
 
@@ -416,29 +484,81 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
     pending: list[dict] = []   # éléments à afficher, dé-chevauvrés avant écriture
 
     def add(style: str, start: float, end: float, text: str, y: int,
-            emph: list[str] | None = None, fade: float = 0.12, is_cue: bool = False) -> None:
+            emph: list[str] | None = None, fade: float = 0.12, is_cue: bool = False,
+            color: str = "", who: str = "", x: int | None = None,
+            size: int | None = None) -> None:
+        start, end = max(start, 0.0), min(end, tl["total"])
         if end <= start + 0.05 or not text.strip():
             return
         pending.append({"style": style, "start": start, "end": end, "text": text, "y": y,
-                        "emph": emph or [], "fade": fade, "cue": is_cue, "scene": 0})
+                        "emph": emph or [], "fade": fade, "cue": is_cue, "scene": 0,
+                        "color": color, "who": who, "x": x, "size": size})
+
+    # Ordre d'apparition des personnages : sert à placer leur badge d'un côté puis de l'autre
+    order: list[str] = []
+    for sc in tl["scenes"]:
+        for ln in sc.lines_planned:
+            if ln["who"] and ln["who"] not in order:
+                order.append(ln["who"])
+    sides = {who: (-1 if i % 2 == 0 else 1) for i, who in enumerate(order)}
+    # Fin du badge bornée au début de la réplique suivante (pas de superposition)
+    flat = sorted([ln for sc in tl["scenes"] for ln in sc.lines_planned],
+                  key=lambda l: l["start"])
+    nxt_start = {id(ln): (flat[i + 1]["start"] if i + 1 < len(flat) else float("inf"))
+                 for i, ln in enumerate(flat)}
 
     windows = visible_windows(tl["scenes"])
     key = [k.lower() for k in tl["meta"].get("keywords", [])]
     for sc, (w0, w1) in zip(tl["scenes"], windows):
         # 1. Textes incrustés (hook, corps, CTA) — affichés pendant la fenêtre visible du plan
         if sc.text:
+            room = fmt.w - 2 * fmt.side
             if sc.text_style == "hook":
-                add("Hook", w0 + 0.08, w1, sc.text.upper(), fmt.top + int(fmt.h * 0.22), sc.emph)
+                fs = fit_size(sc.text.upper(), size(122), room)
+                add("Hook", w0 + 0.08, w1, sc.text.upper(), fmt.top + int(fmt.h * 0.22),
+                    sc.emph, size=fs)
             elif sc.text_style == "cta":
-                add("CTA", w0 + 0.08, w1, sc.text, fmt.h - fmt.bottom - int(fmt.h * 0.05), sc.emph)
+                fs = fit_size(sc.text, size(94), room)
+                add("CTA", w0 + 0.08, w1, sc.text, fmt.h - fmt.bottom - int(fmt.h * 0.05),
+                    sc.emph, size=fs)
                 report["has_cta"] = True
             elif sc.text_style == "kicker":
-                add("Kicker", w0 + 0.08, w1, sc.text.upper(), fmt.top + int(fmt.h * 0.10), sc.emph)
+                fs = fit_size(sc.text.upper(), size(86), room)
+                add("Kicker", w0 + 0.08, w1, sc.text.upper(), fmt.top + int(fmt.h * 0.10),
+                    sc.emph, size=fs)
             else:
-                add("Body", w0 + 0.08, w1, sc.text, fmt.top + int(fmt.h * 0.30), sc.emph)
+                fs = fit_size(sc.text, size(74), room)
+                add("Body", w0 + 0.08, w1, sc.text, fmt.top + int(fmt.h * 0.30), sc.emph, size=fs)
 
-        # 2. Sous-titres issus de la voix off (3 à 5 mots par affichage)
-        if sub_cfg.get("enabled", True) and sc.vo:
+        # Position des sous-titres de ce plan : au-dessus du CTA s'il y en a un
+        sub_y = int(fmt.h * fmt.sub_y)
+        if sc.text and sc.text_style == "cta":
+            sub_y = min(sub_y, fmt.h - fmt.bottom - int(fmt.h * 0.05) - int(fmt.h * 0.085))
+        sub_y = max(sub_y, fmt.top + int(fmt.h * 0.34))
+
+        # 2a. Format podcast / fiction : une réplique = un badge de personnage + des sous-titres
+        if sub_cfg.get("enabled", True) and sc.lines_planned:
+            show_who = bool(sub_cfg.get("show_speaker", True))
+            tag_y = sub_y - int(fmt.h * 0.058)
+            for ln in sc.lines_planned:
+                if not ln["text"]:
+                    continue
+                chunk = chunk_words(ln["text"], max_words=int(sub_cfg.get("max_words", 4)))
+                spans = cue_timings(chunk, ln["start"], ln["end"])
+                if show_who and ln["who"]:
+                    side = sides.get(ln["who"], -1)
+                    x = int(fmt.w * (0.26 if side < 0 else 0.74))
+                    end_tag = min(ln["end"] + 0.08, nxt_start[id(ln)] - 0.02)
+                    add("Speaker", ln["start"] - 0.02, end_tag, ln["who"].upper(), tag_y,
+                        color=cast.get(ln["who"], {}).get("color", accent), x=x)
+                for (a, b), ch in zip(spans, chunk):
+                    emph = [w for w in ch if w.strip(".,!?:;»«\"'").lower() in key]
+                    add("Sub", a, b, " ".join(ch), sub_y, emph, fade=0.06,
+                        is_cue=True, who=ln["who"])
+                    pending[-1]["scene"] = sc.index
+
+        # 2b. Voix off continue : sous-titres découpés en groupes de 3 à 5 mots
+        elif sub_cfg.get("enabled", True) and sc.vo:
             chunks = chunk_words(sc.vo, max_words=int(sub_cfg.get("max_words", 4)))
             onscreen = re.sub(r"[^a-z0-9 ]", "", sc.text.lower()) if sc.text else ""
             for (a, b), ch in zip(cue_timings(chunks, w0 + 0.04, w1), chunks):
@@ -446,35 +566,48 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
                 if onscreen and shown and shown in onscreen:
                     continue  # le texte est déjà à l'écran : inutile de le doubler
                 emph = [w for w in ch if w.strip(".,!?:;»«\"'").lower() in key]
-                add("Sub", a, b, " ".join(ch), int(fmt.h * fmt.sub_y), emph, fade=0.08, is_cue=True)
+                add("Sub", a, b, " ".join(ch), sub_y, emph, fade=0.08, is_cue=True)
                 pending[-1]["scene"] = sc.index
 
     # Signature / handle du compte, sur la toute fin
     handle = tl["meta"].get("handle")
     if handle:
-        add("Kicker", tl["total"] - 1.6, tl["total"],
-            handle, fmt.h - fmt.bottom - int(fmt.h * 0.012))
+        y = (fmt.top + int(fmt.h * 0.045) if report["has_cta"]
+             else fmt.h - fmt.bottom - int(fmt.h * 0.012))
+        add("Kicker", tl["total"] - 1.6, tl["total"], handle, y)
 
-    # Dé-chevauchement global des sous-titres : on raccourcit l'affichage précédent
+    # Dé-chevauchement global des sous-titres : on raccourcit l'affichage précédent,
+    # et si c'est impossible on retarde légèrement l'affichage suivant.
     cues = sorted([p for p in pending if p["cue"]], key=lambda p: p["start"])
     for prev, nxt in zip(cues, cues[1:]):
         if nxt["start"] < prev["end"]:
             prev["end"] = max(prev["start"] + 0.35, nxt["start"] - 0.03)
+        if nxt["start"] < prev["end"]:
+            nxt["start"] = prev["end"]
+        if nxt["end"] <= nxt["start"] + 0.2:
+            nxt["end"] = min(nxt["start"] + 0.6, tl["total"])
 
     events: list[str] = []
     for p in sorted(pending, key=lambda p: p["start"]):
         body = p["text"]
+        if p.get("size"):
+            body = f"{{\\fs{p['size']}}}" + body
+        if p.get("color"):
+            body = "{\\c" + hex_to_ass(p["color"]) + "}" + body
         for w in p["emph"]:
             body = re.sub(rf"(?i)(\b{re.escape(w)}\b)",
                           r"{\\c" + hex_to_ass(accent) + r"}\1{\\c" + hex_to_ass(white) + "}", body)
         events.append(
             f"Dialogue: 0,{ass_time(p['start'])},{ass_time(p['end'])},{p['style']},,0,0,0,,"
-            f"{{\\an5\\pos({fmt.w // 2},{p['y']})\\fad({int(p['fade']*1000)},{int(p['fade']*1000)})}}{body}")
+            f"{{\\an5\\pos({p['x'] if p.get('x') is not None else fmt.w // 2},{p['y']})"
+            f"\\fad({int(p['fade']*1000)},{int(p['fade']*1000)})}}{body}")
         if p["cue"]:
-            report["cues"].append({"start": round(p["start"], 2), "end": round(p["end"], 2),
-                                   "words": len(p["text"].split()), "text": p["text"],
-                                   "scene": p["scene"]})
-        if report["first_text_at"] is None:
+            entry = {"start": round(p["start"], 2), "end": round(p["end"], 2),
+                     "words": len(p["text"].split()), "text": p["text"], "scene": p["scene"]}
+            if p.get("who"):
+                entry["who"] = p["who"]
+            report["cues"].append(entry)
+        if p["cue"] and report["first_text_at"] is None:
             report["first_text_at"] = round(p["start"], 2)
 
     with open(path, "w", encoding="utf-8") as fh:
@@ -488,98 +621,168 @@ def write_srt(report: dict, path: str) -> None:
         return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
     lines = []
     for i, c in enumerate(report["cues"], start=1):
-        lines += [str(i), f"{ts(c['start'])} --> {ts(c['end'])}", c["text"], ""]
+        body = f"{c['who']} : {c['text']}" if c.get("who") else c["text"]
+        lines += [str(i), f"{ts(c['start'])} --> {ts(c['end'])}", body, ""]
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
 
 
 # ----------------------------------------------------------------------------
-# Audio : voix off + musique duckée + SFX, normalisé -14 LUFS
+# Audio : voix (voix off et/ou répliques) + musique duckée + SFX, norme -14 LUFS
 # ----------------------------------------------------------------------------
 def sfx_path(name: str) -> str:
     return os.path.join(ROOT, "tools", "assets", f"sfx_{name}.wav")
 
 
-def mix_audio(tl: dict, out: str, workdir: str) -> None:
-    audio = tl["audio"]
-    vo, music = tl["voiceover"], tl["music"]
-    total = tl["total"]
-    targets = []
-    if vo and os.path.exists(vo):
-        targets.append(("vo", vo))
-    if music and os.path.exists(music):
-        targets.append(("music", music))
+def measure_loudness(path: str) -> dict:
+    """Mesure EBU R128 (intégrée, crête vraie, plage dynamique)."""
+    proc = subprocess.run([ffmpeg(), "-hide_banner", "-nostats", "-i", path,
+                           "-af", "ebur128=peak=true", "-f", "null", "-"],
+                          capture_output=True, text=True)
+    out = proc.stderr
+    def grab(pattern: str) -> float | None:
+        found = re.findall(pattern, out)
+        return float(found[-1]) if found else None
+    return {"i": grab(r"I:\s*(-?\d+\.\d+)\s*LUFS"),
+            "lra": grab(r"LRA:\s*(-?\d+\.\d+)\s*LU"),
+            "tp": grab(r"Peak:\s*(-?\d+\.\d+)\s*dBFS")}
 
-    inputs: list[str] = []
-    for _, p in targets:
-        inputs += (["-stream_loop", "-1"] if p == music else []) + ["-i", p]
+
+def normalize_audio(src: str, dst: str, total: float, target: float = -14.0,
+                    ceiling_db: float = -1.6) -> None:
+    """
+    Normalisation de diffusion par gain linéaire mesuré (EBU R128).
+
+    Un gain linéaire déplace la loudness intégrée d'autant : on atteint donc la cible
+    -14 LUFS exactement, sans les surprises du mode dynamique. Le gain est plafonné
+    par la crête vraie mesurée pour ne jamais saturer : mieux vaut 0,5 LU de moins
+    qu'un son écrasé.
+    """
+    stats = measure_loudness(src)
+    i, tp = stats["i"], stats["tp"]
+    if i is None or i <= -70:      # quasi silence : rien à normaliser
+        run([ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-i", src,
+             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", dst])
+        return
+    gain = target - i
+    if tp is not None:
+        gain = min(gain, ceiling_db - tp)          # plafond de crête
+    gain = max(min(gain, 24.0), -24.0)
+    chain = (f"volume={gain:.2f}dB,"
+             f"alimiter=limit={10 ** (ceiling_db / 20):.4f}:level=disabled")
+    run([ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-i", src,
+         "-af", chain, "-t", f"{total:.3f}",
+         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", dst])
+
+
+def mix_audio(tl: dict, out: str, workdir: str) -> None:
+    """
+    Mixage : sources voix (voix off continue et/ou répliques de personnages), musique
+    duckée sous la voix, effets sonores aux coupes, puis normalisation -14 LUFS.
+    """
+    audio = tl["audio"]
+    total = tl["total"]
+    music = tl["music"] if tl["music"] and os.path.exists(tl["music"]) else ""
+
+    # Sources voix : (chemin, départ absolu, tempo, gain en dB)
+    voices: list[tuple[str, float, float, float]] = []
+    if tl["voiceover"] and os.path.exists(tl["voiceover"]):
+        voices.append((tl["voiceover"], 0.0, 1.0, 0.0))
+    for sc in tl["scenes"]:
+        for ln in sc.lines_planned:
+            if ln["file"] and os.path.exists(ln["file"]):
+                voices.append((ln["file"], ln["start"], ln.get("tempo", 1.0),
+                               ln.get("gain_db", 0.0)))
 
     sfx_events = [(s.start + 0.02, s.sfx) for s in tl["scenes"] if s.sfx and s.sfx != "none"]
-    for _, name in sfx_events:
-        if os.path.exists(sfx_path(name)):
-            inputs += ["-i", sfx_path(name)]
+    sfx_events = [(t, n) for t, n in sfx_events if os.path.exists(sfx_path(n))]
 
-    if not inputs and not sfx_events:
-        # piste silencieuse : évite un fichier sans audio
+    inputs: list[str] = []
+    voice_idx: list[int] = []
+    n_in = 0                      # numéro d'entrée FFmpeg (≠ position dans la liste)
+    for path, _, _, _ in voices:
+        voice_idx.append(n_in)
+        n_in += 1
+        inputs += ["-i", path]
+    music_idx = None
+    if music:
+        music_idx = n_in
+        n_in += 1
+        inputs += ["-stream_loop", "-1", "-i", music]
+    sfx_idx: dict[int, int] = {}
+    for k, (_, name) in enumerate(sfx_events):
+        sfx_idx[k] = n_in
+        n_in += 1
+        inputs += ["-i", sfx_path(name)]
+
+    if not inputs:
+        # Piste silencieuse : évite un fichier vidéo sans audio
         run([ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi",
-             "-i", f"anullsrc=r=48000:cl=stereo", "-t", f"{total:.3f}",
+             "-i", "anullsrc=r=48000:cl=stereo", "-t", f"{total:.3f}",
              "-c:a", "aac", "-b:a", "192k", out])
         return
 
-    cmd = [ffmpeg(), "-y", "-hide_banner", "-loglevel", "error"] + inputs
-    parts, maps = [], []
-    idx = 0
-    vo_label, music_label = None, None
-    for kind, p in targets:
-        if kind == "vo":
-            parts.append(f"[{idx}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
-                         f"apad,atrim=0:{total:.3f},asetpts=N/SR/TB[vo]")
-            vo_label = "[vo]"
+    parts: list[str] = []
+    voice_bus = None
+    for n, ((path, t0, tempo, gain), idx) in enumerate(zip(voices, voice_idx)):
+        chain = f"[{idx}:a]aformat=sample_rates=48000:channel_layouts=stereo"
+        if abs(tempo - 1.0) > 0.01:
+            # accélération imperceptible pour caler une réplique sur son plan
+            t = tempo
+            while t > 2.0:
+                chain += ",atempo=2.0"
+                t /= 2.0
+            chain += f",atempo={t:.4f}"
+        chain += ",dynaudnorm=f=200:g=7:p=0.92:m=4"    # homogénéise les niveaux entre voix
+        if t0 > 0.02:
+            chain += f",adelay={int(t0 * 1000)}|{int(t0 * 1000)}"
+        if gain:
+            chain += f",volume={gain:.1f}dB"
+        chain += f",apad,atrim=0:{total:.3f},asetpts=N/SR/TB[vs{n}]"
+        parts.append(chain)
+    if voices:
+        labels = "".join(f"[vs{n}]" for n in range(len(voices)))
+        if len(voices) == 1:
+            parts.append(f"{labels}anull[voice]")
         else:
-            gain = audio.get("music_gain_db", -13.5)
-            parts.append(f"[{idx}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
-                         f"atrim=0:{total:.3f},volume={gain}dB,"
-                         f"afade=t=in:st=0:d=0.6,afade=t=out:st={max(total-1.2,0):.2f}:d=1.2[music]")
-            music_label = "[music]"
-        idx += 1
+            parts.append(f"{labels}amix=inputs={len(voices)}:duration=longest:normalize=0[voice]")
+        voice_bus = "[voice]"
 
-    # Ducking : la musique descend sous la voix (-18 dB visés)
-    if vo_label and music_label:
-        parts.append(f"{music_label}split=2[mA][mB];"
-                     f"{vo_label}asplit=2[voA][voB];"
-                     f"[mB][voB]sidechaincompress=threshold=0.035:ratio=12:attack=25:"
-                     f"release=450:makeup=1:level_sc=1.2[ducked];"
-                     f"[mA][ducked]amix=inputs=2:duration=first:normalize=0[mixm]")
-        bed = "[mixm]"
-    elif music_label:
-        parts.append(f"{music_label}anull[bedm]")
-        bed = "[bedm]"
-    else:
-        bed = None
+    bed = None
+    if music_idx is not None:
+        gain = audio.get("music_gain_db", -13.5)
+        parts.append(f"[{music_idx}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
+                     f"atrim=0:{total:.3f},asetpts=N/SR/TB,volume={gain}dB,"
+                     f"afade=t=in:st=0:d=0.6,afade=t=out:st={max(total - 1.2, 0):.2f}:d=1.2[music]")
+        if voice_bus:
+            # Ducking : la musique descend d'environ 18 dB sous la voix
+            parts.append(f"[music]asplit=2[mA][mB];"
+                         f"{voice_bus}asplit=2[ky][vkeep];"
+                         f"[mB][ky]sidechaincompress=threshold=0.035:ratio=12:attack=25:"
+                         f"release=450:makeup=1:level_sc=1.2[ducked];"
+                         f"[vkeep][mA][ducked]amix=inputs=3:duration=longest:normalize=0[mixm]")
+            bed = "[mixm]"
+        else:
+            bed = "[music]"
 
-    mix_inputs = []
-    if bed:
-        mix_inputs.append(bed)
-    sfx_src = idx
-    for i, (t0, name) in enumerate(sfx_events):
-        if not os.path.exists(sfx_path(name)):
-            sfx_src += 1
-            continue
+    mix_inputs = [bed] if bed else (["[voice]"] if voices else [])
+    for k, (t0, _) in enumerate(sfx_events):
         delay = int(t0 * 1000)
-        parts.append(f"[{sfx_src}:a]adelay={delay}|{delay},volume=-9dB,"
-                     f"aformat=sample_rates=48000:channel_layouts=stereo[sfx{i}]")
-        mix_inputs.append(f"[sfx{i}]")
-        sfx_src += 1
+        parts.append(f"[{sfx_idx[k]}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
+                     f"adelay={delay}|{delay},volume=-9dB[sfx{k}]")
+        mix_inputs.append(f"[sfx{k}]")
 
-    if len(mix_inputs) == 1 and mix_inputs[0] == bed:
-        parts.append(f"{bed}alimiter=limit=0.85:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,alimiter=limit=0.79:level=disabled[aout]")
+    joined = "".join(mix_inputs)
+    if len(mix_inputs) == 1:
+        parts.append(f"{joined}anull[mixed]")
     else:
-        joined = "".join(mix_inputs)
         parts.append(f"{joined}amix=inputs={len(mix_inputs)}:duration=longest:normalize=0,"
-                     f"alimiter=limit=0.85:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,alimiter=limit=0.79:level=disabled[aout]")
-    cmd += ["-filter_complex", ";".join(parts), "-map", "[aout]", "-t", f"{total:.3f}",
-            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", out]
-    run(cmd)
+                     f"alimiter=limit=0.95:level=disabled[mixed]")
+    raw = os.path.join(workdir, "mix_raw.m4a")
+    run([ffmpeg(), "-y", "-hide_banner", "-loglevel", "error"] + inputs + [
+        "-filter_complex", ";".join(parts), "-map", "[mixed]", "-t", f"{total:.3f}",
+        "-c:a", "aac", "-b:a", "256k", "-ar", "48000", raw])
+    normalize_audio(raw, out, total, target=audio.get("target_lufs", -14.0))
 
 
 # ----------------------------------------------------------------------------
@@ -598,6 +801,8 @@ def render(tl_path: str, aspects: list[str], outdir: str, dry: bool = False) -> 
 
     print(f"▸ {len(scenes)} plans · durée montée {tl['total']:.2f} s · "
           f"{tl['total']/len(scenes):.2f} s/plan")
+    for w in DIALOGUE_WARNINGS:
+        print(f"   ⚠ {w}")
     for sc in scenes:
         print(f"   plan {sc.index:>2} | {sc.dur:4.2f}s | {os.path.basename(sc.image):<22} "
               f"| {sc.motion_resolved:<14} | {sc.transition:<10} | {sc.text or sc.vo[:38]}")
@@ -635,10 +840,13 @@ def render(tl_path: str, aspects: list[str], outdir: str, dry: bool = False) -> 
              "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
              "-movflags", "+faststart", "-shortest", final])
         rp = dict(report)
-        rp.update({"aspect": aspect, "resolution": f"{fmt.w}x{fmt.h}",
+        rp.update({"warnings": DIALOGUE_WARNINGS, "aspect": aspect, "resolution": f"{fmt.w}x{fmt.h}",
                    "duration": tl["total"], "file": final,
                    "safe_zone": {"top": fmt.top, "bottom": fmt.bottom, "side": fmt.side},
                    "scenes": [{"index": s.index, "start": round(s.start, 3), "dur": s.dur,
+                               "lines": [{"who": l["who"], "start": l["start"], "end": l["end"],
+                                          "tempo": l["tempo"], "text": l["text"]}
+                                         for l in s.lines_planned],
                                "image": os.path.basename(s.image),
                                "motion": s.motion_resolved, "transition": s.transition,
                                "text_style": s.text_style, "has_text": bool(s.text),

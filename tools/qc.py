@@ -91,6 +91,25 @@ def check_video(path: str, report: dict) -> tuple[list[str], bool]:
         lines.append(f"  {WARN}Aucun sous-titre (voix off absente ?)")
         ok = False
 
+    # Répliques de personnages (podcast / fiction) : chacune doit tenir dans son plan
+    all_lines = [l for sc in report.get("scenes", []) for l in sc.get("lines", [])]
+    if all_lines:
+        over = [(sc["index"], l["who"], round(l["end"] - (sc["start"] + sc["dur"]), 2))
+                for sc in report["scenes"] for l in sc.get("lines", [])
+                if l["end"] > sc["start"] + sc["dur"] + 0.05]
+        cast = sorted({l["who"] for l in all_lines if l["who"]})
+        say(not over,
+            f"{len(all_lines)} répliques calées dans leur plan ({len(cast)} personnages : "
+            f"{', '.join(cast)})",
+            f"{len(over)} réplique(s) dépassent la fin de leur plan : {over}")
+        speech = sum(l["end"] - l["start"] for l in all_lines)
+        silence = max(0.0, dur - speech)
+        say(speech / dur >= 0.35,
+            f"Temps de parole {speech:.1f}s sur {dur:.1f}s",
+            f"Temps de parole faible ({speech:.1f}s / {dur:.1f}s) : risque de silence mort")
+        if silence > 3.0:
+            lines.append(f"  {WARN}{silence:.1f}s sans parole sur la durée totale")
+
     # Mouvement : aucun plan statique > 3 s
     slow = [s for s in report.get("scenes", []) if s["dur"] > 3.0 and s["motion"] in
             ("hold_breath", "static")]
@@ -114,6 +133,8 @@ def check_video(path: str, report: dict) -> tuple[list[str], bool]:
 
 
 def extract_frames(path: str, report: dict, outdir: str) -> list[str]:
+    # un sous-dossier par vidéo : évite de mélanger les vignettes de plusieurs rendus
+    outdir = os.path.join(outdir, os.path.splitext(os.path.basename(path))[0])
     os.makedirs(outdir, exist_ok=True)
     made = []
     for i, sc in enumerate(report.get("scenes", [])):

@@ -1,0 +1,82 @@
+{
+  "_doc": "Exemple de timeline au format PODCAST / fiction (personnages qui se répondent). Chaque plan contient une ou plusieurs répliques (lines) avec le personnage qui parle (who) et le fichier de sa voix (file). Le moteur cale automatiquement chaque réplique dans son plan, synchronise les sous-titres sur le son, affiche un badge de personnage (couleur définie dans cast) et déclenche le ducking de la musique. Enregistrez chaque réplique dans un fichier séparé : c'est ce qui permet le calage automatique, sinon indiquez une durée estimée avec dur, ou fournissez un fichier unique via audio.voiceover.",
+
+  "meta": {
+    "title": "elimarket — le paiement protégé",
+    "handle": "@elimarket.africa",
+    "keywords": ["vérifié", "protégé", "colis"],
+    "brand": { "accent": "#FFC300" }
+  },
+
+  "cast": {
+    "AWA": { "voice": "féminine, la cliente méfiante", "gender": "feminine", "color": "#7ED0FF" },
+    "MOUSSA": { "voice": "masculine, le vendeur posé", "gender": "masculine", "color": "#FFC300" },
+    "NARRATEUR": { "voice": "neutre, claire", "gender": "masculine", "color": "#FFFFFF" }
+  },
+
+  "audio": {
+    "music": "audio/bed_podcast.wav",
+    "music_gain_db": -14.0
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "max_words": 4,
+    "show_speaker": true,
+    "max_tempo": 1.25
+  },
+
+  "scenes": [
+    {
+      "image": "images/01-awa.jpg",
+      "dur": 3.0,
+      "motion": "zoom_in",
+      "transition": "cut",
+      "sfx": "impact",
+      "text": { "value": "Le cauchemar du paiement en ligne", "style": "hook", "emph": ["paiement"] },
+      "lines": [
+        { "who": "AWA", "text": "J'ai payé, et le vendeur a disparu", "file": "audio/awa_01.wav" }
+      ]
+    },
+    {
+      "image": "images/02-moussa.jpg",
+      "dur": 2.8,
+      "motion": "auto",
+      "transition": "fade",
+      "sfx": "whoosh",
+      "lines": [
+        { "who": "MOUSSA", "text": "Tu as payé sans vérifier le vendeur ?", "file": "audio/moussa_01.wav" }
+      ]
+    },
+    {
+      "image": "images/03-verification.jpg",
+      "dur": 3.0,
+      "motion": "pan_right",
+      "transition": "cut",
+      "lines": [
+        { "who": "AWA", "text": "Comment je sais que le vendeur est fiable ?", "file": "audio/awa_02.wav" }
+      ]
+    },
+    {
+      "image": "images/04-protection.jpg",
+      "dur": 3.2,
+      "motion": "auto",
+      "transition": "slideleft",
+      "sfx": "riser",
+      "lines": [
+        { "who": "MOUSSA", "text": "Le paiement reste bloqué jusqu'à la réception", "file": "audio/moussa_02.wav" }
+      ]
+    },
+    {
+      "image": "images/05-cta.jpg",
+      "dur": 3.2,
+      "motion": "parallax_push",
+      "transition": "fade",
+      "sfx": "impact",
+      "text": { "value": "Rejoignez elimarket.africa", "style": "cta", "emph": ["elimarket.africa"] },
+      "lines": [
+        { "who": "NARRATEUR", "text": "Inscription gratuite, vendez en confiance", "file": "audio/nar_01.wav" }
+      ]
+    }
+  ]
+}
