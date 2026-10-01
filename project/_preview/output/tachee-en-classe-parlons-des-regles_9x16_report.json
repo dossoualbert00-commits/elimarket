@@ -1,0 +1,517 @@
+{
+  "cues": [
+    {
+      "start": 0.09,
+      "end": 1.77,
+      "words": 4,
+      "text": "Mariam, 14 ans, Cotonou.",
+      "scene": 1,
+      "who": "KOFFI"
+    },
+    {
+      "start": 2.59,
+      "end": 4.14,
+      "words": 4,
+      "text": "Elle se lève en",
+      "scene": 2,
+      "who": "KOFFI"
+    },
+    {
+      "start": 4.14,
+      "end": 5.64,
+      "words": 4,
+      "text": "classe, tache derrière l'uniforme.",
+      "scene": 2,
+      "who": "KOFFI"
+    },
+    {
+      "start": 5.69,
+      "end": 6.85,
+      "words": 3,
+      "text": "Et toute la",
+      "scene": 3,
+      "who": "AMINA"
+    },
+    {
+      "start": 6.85,
+      "end": 7.58,
+      "words": 2,
+      "text": "classe rit.",
+      "scene": 3,
+      "who": "AMINA"
+    },
+    {
+      "start": 7.89,
+      "end": 9.26,
+      "words": 4,
+      "text": "Tu connais cette peur,",
+      "scene": 4,
+      "who": "AMINA"
+    },
+    {
+      "start": 9.26,
+      "end": 10.58,
+      "words": 4,
+      "text": "toi aussi, hein ?",
+      "scene": 4,
+      "who": "AMINA"
+    },
+    {
+      "start": 10.79,
+      "end": 12.22,
+      "words": 4,
+      "text": "Aujourd'hui, on met fin",
+      "scene": 5,
+      "who": "KOFFI"
+    },
+    {
+      "start": 12.22,
+      "end": 13.24,
+      "words": 3,
+      "text": "à cette honte.",
+      "scene": 5,
+      "who": "KOFFI"
+    },
+    {
+      "start": 15.74,
+      "end": 17.27,
+      "words": 4,
+      "text": "Mariam a eu ses",
+      "scene": 7,
+      "who": "AMINA"
+    },
+    {
+      "start": 17.27,
+      "end": 18.8,
+      "words": 4,
+      "text": "règles à 13 ans.",
+      "scene": 7,
+      "who": "AMINA"
+    },
+    {
+      "start": 18.8,
+      "end": 19.95,
+      "words": 3,
+      "text": "Personne ne lui",
+      "scene": 7,
+      "who": "AMINA"
+    },
+    {
+      "start": 19.95,
+      "end": 20.66,
+      "words": 2,
+      "text": "avait expliqué.",
+      "scene": 7,
+      "who": "AMINA"
+    },
+    {
+      "start": 21.59,
+      "end": 22.73,
+      "words": 4,
+      "text": "Sa mère disait juste",
+      "scene": 8,
+      "who": "KOFFI"
+    },
+    {
+      "start": 22.73,
+      "end": 23.87,
+      "words": 4,
+      "text": ": ne touche pas",
+      "scene": 8,
+      "who": "KOFFI"
+    },
+    {
+      "start": 23.87,
+      "end": 24.73,
+      "words": 3,
+      "text": "aux plantes, ne",
+      "scene": 8,
+      "who": "KOFFI"
+    },
+    {
+      "start": 24.73,
+      "end": 25.25,
+      "words": 2,
+      "text": "cuisine pas.",
+      "scene": 8,
+      "who": "KOFFI"
+    },
+    {
+      "start": 26.29,
+      "end": 27.97,
+      "words": 4,
+      "text": "Résultat : peur, silence,",
+      "scene": 9,
+      "who": "AMINA"
+    },
+    {
+      "start": 27.97,
+      "end": 29.65,
+      "words": 4,
+      "text": "et du tissu sale",
+      "scene": 9,
+      "who": "AMINA"
+    },
+    {
+      "start": 29.65,
+      "end": 30.91,
+      "words": 3,
+      "text": "pour se protéger.",
+      "scene": 9,
+      "who": "AMINA"
+    },
+    {
+      "start": 35.89,
+      "end": 37.37,
+      "words": 4,
+      "text": "Un paquet de serviettes,",
+      "scene": 11,
+      "who": "KOFFI"
+    },
+    {
+      "start": 37.37,
+      "end": 38.86,
+      "words": 4,
+      "text": "c'est 500 à 1",
+      "scene": 11,
+      "who": "KOFFI"
+    },
+    {
+      "start": 38.86,
+      "end": 39.55,
+      "words": 2,
+      "text": "000 FCFA.",
+      "scene": 11,
+      "who": "KOFFI"
+    }
+  ],
+  "first_text_at": 0.09,
+  "has_cta": true,
+  "text_events": [
+    {
+      "start": 0.02,
+      "end": 2.47,
+      "style": "Speaker",
+      "scene": 6
+    },
+    {
+      "start": 0.08,
+      "end": 2.5,
+      "style": "Kicker",
+      "scene": 1
+    },
+    {
+      "start": 2.52,
+      "end": 5.62,
+      "style": "Speaker",
+      "scene": 6
+    },
+    {
+      "start": 5.62,
+      "end": 7.66,
+      "style": "Speaker",
+      "scene": 6
+    },
+    {
+      "start": 7.82,
+      "end": 10.66,
+      "style": "Speaker",
+      "scene": 6
+    },
+    {
+      "start": 10.72,
+      "end": 13.32,
+      "style": "Speaker",
+      "scene": 6
+    },
+    {
+      "start": 13.28,
+      "end": 15.65,
+      "style": "Note",
+      "scene": 6
+    },
+    {
+      "start": 13.28,
+      "end": 15.65,
+      "style": "CTA",
+      "scene": 6
+    },
+    {
+      "start": 15.67,
+      "end": 20.74,
+      "style": "Speaker",
+      "scene": 10
+    },
+    {
+      "start": 21.52,
+      "end": 25.33,
+      "style": "Speaker",
+      "scene": 10
+    },
+    {
+      "start": 26.22,
+      "end": 32.13,
+      "style": "Speaker",
+      "scene": 10
+    },
+    {
+      "start": 33.28,
+      "end": 35.8,
+      "style": "Kicker",
+      "scene": 10
+    },
+    {
+      "start": 35.82,
+      "end": 39.63,
+      "style": "Speaker",
+      "scene": 12
+    },
+    {
+      "start": 40.58,
+      "end": 45.1,
+      "style": "Note",
+      "scene": 12
+    },
+    {
+      "start": 40.58,
+      "end": 45.1,
+      "style": "CTA",
+      "scene": 12
+    },
+    {
+      "start": 43.5,
+      "end": 45.1,
+      "style": "Kicker",
+      "scene": 0
+    }
+  ],
+  "warnings": [],
+  "aspect": "9:16",
+  "resolution": "1080x1920",
+  "duration": 45.1,
+  "file": "/home/user/elimarket/project/_preview/output/tachee-en-classe-parlons-des-regles_9x16.mp4",
+  "safe_zone": {
+    "top": 230,
+    "bottom": 430,
+    "side": 90
+  },
+  "scenes": [
+    {
+      "index": 1,
+      "start": 0.0,
+      "dur": 2.5,
+      "lines": [
+        {
+          "who": "KOFFI",
+          "start": 0.04,
+          "end": 2.39,
+          "tempo": 1.0,
+          "text": "Mariam, 14 ans, Cotonou."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "zoom_in",
+      "transition": "cut",
+      "text_style": "kicker",
+      "has_text": true,
+      "has_vo": false
+    },
+    {
+      "index": 2,
+      "start": 2.5,
+      "dur": 3.1,
+      "lines": [
+        {
+          "who": "KOFFI",
+          "start": 2.54,
+          "end": 5.64,
+          "tempo": 1.0452,
+          "text": "Elle se lève en classe, tache derrière l'uniforme."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "pan_left",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 3,
+      "start": 5.6,
+      "dur": 2.2,
+      "lines": [
+        {
+          "who": "AMINA",
+          "start": 5.64,
+          "end": 7.58,
+          "tempo": 1.0,
+          "text": "Et toute la classe rit."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "zoom_in",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 4,
+      "start": 7.8,
+      "dur": 2.9,
+      "lines": [
+        {
+          "who": "AMINA",
+          "start": 7.84,
+          "end": 10.58,
+          "tempo": 1.0,
+          "text": "Tu connais cette peur, toi aussi, hein ?"
+        }
+      ],
+      "image": "plate.png",
+      "motion": "pull_soft",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 5,
+      "start": 10.7,
+      "dur": 2.5,
+      "lines": [
+        {
+          "who": "KOFFI",
+          "start": 10.74,
+          "end": 13.24,
+          "tempo": 1.004,
+          "text": "Aujourd'hui, on met fin à cette honte."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "parallax_push",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 6,
+      "start": 13.2,
+      "dur": 2.6,
+      "lines": [],
+      "image": "03-titre.png",
+      "motion": "hold_breath",
+      "transition": "cut",
+      "text_style": "cta",
+      "has_text": true,
+      "has_vo": false
+    },
+    {
+      "index": 7,
+      "start": 15.5,
+      "dur": 6.0,
+      "lines": [
+        {
+          "who": "AMINA",
+          "start": 15.69,
+          "end": 20.66,
+          "tempo": 1.0,
+          "text": "Mariam a eu ses règles à 13 ans. Personne ne lui avait expliqué."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "zoom_in",
+      "transition": "fade",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 8,
+      "start": 21.5,
+      "dur": 4.7,
+      "lines": [
+        {
+          "who": "KOFFI",
+          "start": 21.54,
+          "end": 25.25,
+          "tempo": 1.0,
+          "text": "Sa mère disait juste : ne touche pas aux plantes, ne cuisine pas."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "push_soft",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 9,
+      "start": 26.2,
+      "dur": 7.0,
+      "lines": [
+        {
+          "who": "AMINA",
+          "start": 26.24,
+          "end": 32.05,
+          "tempo": 1.0,
+          "text": "Résultat : peur, silence, et du tissu sale pour se protéger."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "pull_soft",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 10,
+      "start": 33.2,
+      "dur": 2.6,
+      "lines": [],
+      "image": "plate.png",
+      "motion": "hold_breath",
+      "transition": "cut",
+      "text_style": "kicker",
+      "has_text": true,
+      "has_vo": false
+    },
+    {
+      "index": 11,
+      "start": 35.8,
+      "dur": 4.7,
+      "lines": [
+        {
+          "who": "KOFFI",
+          "start": 35.84,
+          "end": 39.55,
+          "tempo": 1.0,
+          "text": "Un paquet de serviettes, c'est 500 à 1 000 FCFA."
+        }
+      ],
+      "image": "plate.png",
+      "motion": "pan_right",
+      "transition": "cut",
+      "text_style": "body",
+      "has_text": false,
+      "has_vo": false
+    },
+    {
+      "index": 12,
+      "start": 40.5,
+      "dur": 4.6,
+      "lines": [],
+      "image": "04-prix.png",
+      "motion": "parallax_push",
+      "transition": "cut",
+      "text_style": "cta",
+      "has_text": true,
+      "has_vo": false
+    }
+  ],
+  "music_gain_db": -15.0
+}

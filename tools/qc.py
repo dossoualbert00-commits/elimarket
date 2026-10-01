@@ -74,17 +74,22 @@ def check_video(path: str, report: dict) -> tuple[list[str], bool]:
     if cues:
         bad_words = [c for c in cues if not 1 <= c["words"] <= 5]
         overlaps = [i for i in range(1, len(cues)) if cues[i]["start"] < cues[i - 1]["end"] - 0.02]
-        # Un trou n'est gênant que si rien d'autre n'est à l'écran (titre incrusté du plan)
-        titles = {s["index"] for s in report.get("scenes", []) if s.get("has_text")}
+        # Un silence n'est gênant que si rien n'est à l'écran pendant ce temps
+        # (un titre, un bandeau ou une carte de marque peut porter le propos sans parole).
+        evts = report.get("text_events", [])
+
+        def covered(a: float, b: float) -> bool:
+            return any(e["start"] < b - 0.05 and e["end"] > a + 0.05 for e in evts)
+
         gaps = [i for i in range(1, len(cues))
                 if cues[i]["start"] - cues[i - 1]["end"] > 0.9
-                and cues[i].get("scene") not in titles]
+                and not covered(cues[i - 1]["end"], cues[i]["start"])]
         say(not bad_words, f"{len(cues)} sous-titres, 1 à 5 mots par affichage",
             f"{len(bad_words)} sous-titre(s) hors cible de mots")
         say(not overlaps, "Aucun chevauchement de sous-titres",
             f"{len(overlaps)} chevauchement(s) de sous-titres")
-        say(not gaps, "Aucun silence mort > 0,9 s entre sous-titres",
-            f"{len(gaps)} trou(s) > 0,9 s entre sous-titres")
+        say(not gaps, "Aucun silence mort > 0,9 s sans texte à l'écran",
+            f"{len(gaps)} silence(s) > 0,9 s sans aucun texte à l'écran")
         say(all(c["end"] <= dur + 0.1 for c in cues),
             "Tous les sous-titres tiennent dans la durée", "Sous-titre au-delà de la fin")
     else:

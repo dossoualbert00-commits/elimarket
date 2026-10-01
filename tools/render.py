@@ -154,6 +154,7 @@ class Scene:
     vo_file: str = ""
     sfx: str = ""                   # whoosh | riser | impact | none
     note: str = ""                  # mention discrète en bas (transparence, source…)
+    text_y: float = 0.0             # position verticale imposée du texte (0 = automatique)
     lines: list[dict] = field(default_factory=list)           # répliques (podcast / fiction)
     lines_planned: list[dict] = field(default_factory=list)   # répliques placées sur la timeline
     start: float = 0.0              # calculé
@@ -189,6 +190,7 @@ def load_timeline(path: str) -> dict:
             vo_file=resolve(s.get("vo_file", "")),
             sfx=s.get("sfx", ""),
             note=s.get("note", ""),
+            text_y=float(s.get("text_y", 0) or 0),
             lines=[{"who": ln.get("who", ""),
                     "text": ln.get("text", ""),
                     "file": resolve(ln.get("file", "")),
@@ -230,6 +232,7 @@ def load_timeline(path: str) -> dict:
 
 
 DIALOGUE_WARNINGS: list[str] = []
+_LUFS_CACHE: dict[str, float] = {}     # niveaux mesurés des sources voix (évite les appels répétés)
 
 
 def plan_dialogue(scenes: list[Scene], sub_cfg: dict) -> None:
@@ -527,9 +530,10 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
         # 1. Textes incrustés (hook, corps, CTA) — affichés pendant la fenêtre visible du plan
         if sc.text:
             room = fmt.w - 2 * fmt.side
+            forced = int(fmt.h * sc.text_y) if sc.text_y else 0
             if sc.text_style == "hook":
                 fs = fit_size(sc.text.upper(), size(122), room)
-                add("Hook", w0 + 0.08, w1, sc.text.upper(), fmt.top + int(fmt.h * 0.22),
+                add("Hook", w0 + 0.08, w1, sc.text.upper(), forced or fmt.top + int(fmt.h * 0.22),
                     sc.emph, size=fs)
             elif sc.text_style == "cta":
                 fs = fit_size(sc.text, size(94), room)
@@ -541,11 +545,14 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
                 report["has_cta"] = True
             elif sc.text_style == "kicker":
                 fs = fit_size(sc.text.upper(), size(86), room)
-                add("Kicker", w0 + 0.08, w1, sc.text.upper(), fmt.top + int(fmt.h * 0.10),
+                add("Kicker", w0 + 0.08, w1, sc.text.upper(), forced or fmt.top + int(fmt.h * 0.10),
                     sc.emph, size=fs)
             else:
                 fs = fit_size(sc.text, size(74), room)
-                add("Body", w0 + 0.08, w1, sc.text, fmt.top + int(fmt.h * 0.30), sc.emph, size=fs)
+                add("Body", w0 + 0.08, w1, sc.text, forced or fmt.top + int(fmt.h * 0.30), sc.emph, size=fs)
+            for ev in pending:
+                if not ev["cue"] and ev["scene"] == 0:
+                    ev["scene"] = sc.index
 
         # Position des sous-titres de ce plan : au-dessus du CTA s'il y en a un
         sub_y = int(fmt.h * fmt.sub_y)
@@ -622,6 +629,10 @@ def build_ass(tl: dict, fmt: Format, path: str) -> dict:
             f"Dialogue: 0,{ass_time(p['start'])},{ass_time(p['end'])},{p['style']},,0,0,0,,"
             f"{{\\an5\\pos({p['x'] if p.get('x') is not None else fmt.w // 2},{p['y']})"
             f"\\fad({int(p['fade']*1000)},{int(p['fade']*1000)})}}{body}")
+        if not p["cue"]:
+            report.setdefault("text_events", []).append(
+                {"start": round(p["start"], 2), "end": round(p["end"], 2),
+                 "style": p["style"], "scene": p["scene"]})
         if p["cue"]:
             entry = {"start": round(p["start"], 2), "end": round(p["end"], 2),
                      "words": len(p["text"].split()), "text": p["text"], "scene": p["scene"]}
@@ -685,12 +696,18 @@ def normalize_audio(src: str, dst: str, total: float, target: float = -14.0,
         run([ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-i", src,
              "-c:a", "aac", "-b:a", "192k", "-ar", "48000", dst])
         return
+    # On vise la cible par gain linéaire, puis un limiteur doux absorbe les crêtes :
+    # la loudness intégrée reste au niveau de diffusion, sans saturation.
     gain = target - i
-    if tp is not None:
-        gain = min(gain, ceiling_db - tp)          # plafond de crête
     gain = max(min(gain, 24.0), -24.0)
+    limit = 10 ** (ceiling_db / 20)
     chain = (f"volume={gain:.2f}dB,"
-             f"alimiter=limit={10 ** (ceiling_db / 20):.4f}:level=disabled")
+             f"alimiter=limit={limit:.4f}:attack=5:release=80:level=disabled")
+    if tp is not None and tp + gain > ceiling_db:
+        # crêtes au-dessus du plafond : le limiteur les absorbe (pas de compression large,
+        # qui écraserait la parole) ; le niveau moyen reste celui de la diffusion
+        chain = (f"volume={gain:.2f}dB,"
+                 f"alimiter=limit={limit:.4f}:attack=5:release=120:level=disabled")
     run([ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", "-i", src,
          "-af", chain, "-t", f"{total:.3f}",
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", dst])
@@ -743,6 +760,7 @@ def mix_audio(tl: dict, out: str, workdir: str) -> None:
              "-c:a", "aac", "-b:a", "192k", out])
         return
 
+    ref_lufs = float(audio.get("voice_ref_lufs", -19.0))
     parts: list[str] = []
     voice_bus = None
     for n, ((path, t0, tempo, gain), idx) in enumerate(zip(voices, voice_idx)):
@@ -754,7 +772,12 @@ def mix_audio(tl: dict, out: str, workdir: str) -> None:
                 chain += ",atempo=2.0"
                 t /= 2.0
             chain += f",atempo={t:.4f}"
-        chain += ",dynaudnorm=f=200:g=7:p=0.92:m=4"    # homogénéise les niveaux entre voix
+        # Niveau homogène garanti : chaque voix est mesurée et calée sur la référence.
+        # (les voix enregistrées séparément arrivent à des niveaux très différents)
+        if path not in _LUFS_CACHE:
+            _LUFS_CACHE[path] = measure_loudness(path).get("i") or ref_lufs
+        delta = max(min(ref_lufs - _LUFS_CACHE[path], 26.0), -12.0)
+        chain += f",volume={delta:.2f}dB"
         if t0 > 0.02:
             chain += f",adelay={int(t0 * 1000)}|{int(t0 * 1000)}"
         if gain:
@@ -764,9 +787,15 @@ def mix_audio(tl: dict, out: str, workdir: str) -> None:
     if voices:
         labels = "".join(f"[vs{n}]" for n in range(len(voices)))
         if len(voices) == 1:
-            parts.append(f"{labels}anull[voice]")
+            parts.append(f"{labels}anull[vsum]")
         else:
-            parts.append(f"{labels}amix=inputs={len(voices)}:duration=longest:normalize=0[voice]")
+            parts.append(f"{labels}amix=inputs={len(voices)}:duration=longest:normalize=0[vsum]")
+        # compression douce + garde-fou de crête : voix toujours intelligible,
+        # sans pics qui empêcheraient d'atteindre la cible de diffusion
+        # la parole doit dominer la musique d'environ 4 à 6 LU : compression douce,
+        # puis niveau de référence de la voix ; le mixage final est normalisé ensuite
+        parts.append("[vsum]acompressor=threshold=-19dB:ratio=2.6:attack=12:release=220:"
+                     "makeup=1.6,volume=3dB,alimiter=limit=0.86:level=disabled[voice]")
         voice_bus = "[voice]"
 
     bed = None
@@ -790,7 +819,7 @@ def mix_audio(tl: dict, out: str, workdir: str) -> None:
     for k, (t0, _) in enumerate(sfx_events):
         delay = int(t0 * 1000)
         parts.append(f"[{sfx_idx[k]}:a]aformat=sample_rates=48000:channel_layouts=stereo,"
-                     f"adelay={delay}|{delay},volume=-9dB[sfx{k}]")
+                     f"adelay={delay}|{delay},volume=-12dB[sfx{k}]")
         mix_inputs.append(f"[sfx{k}]")
 
     joined = "".join(mix_inputs)

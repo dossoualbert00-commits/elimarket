@@ -1,5 +1,5 @@
 {
-  "_doc": "HOOK 0:00-0:15 du Reel « TACHÉE EN CLASSE — PARLONS DES RÈGLES ». Facebook Reels 9:16. Deux personnages (Koffi, Amina) en style podcast. Mariam est un personnage illustratif : le cas est courant, donc la carte titre porte une mention de transparence (champ « note »).",
+  "_doc": "VERSION COMPLÈTE 0:00-0:45 (45,6 s) : hook + contexte, pour YouTube et le Reel long. C'est l'assemblage exact des parties 1 et 2, sans coupure supplémentaire.",
   "meta": {
     "title": "Tachee en classe - parlons des regles",
     "handle": "@elimarket.africa",
@@ -8,7 +8,7 @@
       "honte",
       "peur",
       "classe",
-      "garçons"
+      "silence"
     ],
     "brand": {
       "accent": "#FFC300"
@@ -40,7 +40,7 @@
   },
   "scenes": [
     {
-      "image": "images/01-koffi.png",
+      "image": "_preview/plate.png",
       "dur": 2.5,
       "motion": "zoom_in",
       "transition": "cut",
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "image": "images/01-koffi.png",
+      "image": "_preview/plate.png",
       "dur": 3.1,
       "motion": "pan_left",
       "transition": "cut",
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "image": "images/02-amina.png",
+      "image": "_preview/plate.png",
       "dur": 2.2,
       "motion": "zoom_in",
       "transition": "cut",
@@ -85,7 +85,7 @@
       ]
     },
     {
-      "image": "images/02-amina.png",
+      "image": "_preview/plate.png",
       "dur": 2.9,
       "motion": "pull_soft",
       "transition": "cut",
@@ -98,7 +98,7 @@
       ]
     },
     {
-      "image": "images/01-koffi.png",
+      "image": "_preview/plate.png",
       "dur": 2.5,
       "motion": "parallax_push",
       "transition": "cut",
@@ -113,7 +113,7 @@
     },
     {
       "image": "images/03-titre.png",
-      "dur": 2.4,
+      "dur": 2.6,
       "motion": "hold_breath",
       "transition": "cut",
       "sfx": "impact",
@@ -125,6 +125,89 @@
         ]
       },
       "note": "Pour les filles et les garçons\nSituation courante — personnage illustratif"
+    },
+    {
+      "image": "_preview/plate.png",
+      "dur": 6.0,
+      "motion": "zoom_in",
+      "transition": "fade",
+      "lines": [
+        {
+          "who": "AMINA",
+          "text": "Mariam a eu ses règles à 13 ans. Personne ne lui avait expliqué.",
+          "file": "audio/amina_03.mp3"
+        }
+      ]
+    },
+    {
+      "image": "_preview/plate.png",
+      "dur": 4.7,
+      "motion": "push_soft",
+      "transition": "cut",
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Sa mère disait juste : ne touche pas aux plantes, ne cuisine pas.",
+          "file": "audio/koffi_04.mp3"
+        }
+      ]
+    },
+    {
+      "image": "_preview/plate.png",
+      "dur": 7.0,
+      "motion": "pull_soft",
+      "transition": "cut",
+      "sfx": "heartbeat",
+      "lines": [
+        {
+          "who": "AMINA",
+          "text": "Résultat : peur, silence, et du tissu sale pour se protéger.",
+          "file": "audio/amina_04.mp3"
+        }
+      ]
+    },
+    {
+      "image": "_preview/plate.png",
+      "dur": 2.6,
+      "motion": "hold_breath",
+      "transition": "cut",
+      "sfx": "impact",
+      "text": {
+        "value": "PEUR. SILENCE.",
+        "style": "kicker",
+        "emph": [
+          "PEUR",
+          "SILENCE"
+        ]
+      }
+    },
+    {
+      "image": "_preview/plate.png",
+      "dur": 4.7,
+      "motion": "pan_right",
+      "transition": "cut",
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Un paquet de serviettes, c'est 500 à 1 000 FCFA.",
+          "file": "audio/koffi_05.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/04-prix.png",
+      "dur": 4.6,
+      "motion": "parallax_push",
+      "transition": "cut",
+      "sfx": "riser",
+      "text": {
+        "value": "500 À 1 000 FCFA",
+        "style": "cta",
+        "emph": [
+          "500 À 1 000 FCFA"
+        ]
+      },
+      "note": "LE PRIX DU SILENCE"
     }
   ]
 }

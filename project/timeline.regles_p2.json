@@ -1,0 +1,126 @@
+{
+  "_doc": "PARTIE 2 — CONTEXTE 0:15-0:45 (Reel autonome, 30 s). Enchaîne après la partie 1 : ce qui s'est passé, ce que la mère disait, le résultat, puis le prix du silence (carte de marque, sans visuel inventé).",
+  "meta": {
+    "title": "Tachee en classe - parlons des regles",
+    "handle": "@elimarket.africa",
+    "keywords": [
+      "règles",
+      "honte",
+      "peur",
+      "classe",
+      "silence"
+    ],
+    "brand": {
+      "accent": "#FFC300"
+    }
+  },
+  "cast": {
+    "KOFFI": {
+      "voice": "masculine, posée et grave, débit lent",
+      "gender": "masculine",
+      "color": "#FFC300"
+    },
+    "AMINA": {
+      "voice": "féminine, complice puis grave",
+      "gender": "feminine",
+      "color": "#5FD3E8"
+    }
+  },
+  "audio": {
+    "music": "audio/bed_regles.wav",
+    "music_gain_db": -15.0,
+    "target_lufs": -14.0
+  },
+  "subtitles": {
+    "enabled": true,
+    "max_words": 4,
+    "show_speaker": true,
+    "max_tempo": 1.22,
+    "line_gap": 0.14
+  },
+  "scenes": [
+    {
+      "image": "images/02-amina.png",
+      "dur": 6.0,
+      "motion": "zoom_in",
+      "transition": "fade",
+      "lines": [
+        {
+          "who": "AMINA",
+          "text": "Mariam a eu ses règles à 13 ans. Personne ne lui avait expliqué.",
+          "file": "audio/amina_03.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/01-koffi.png",
+      "dur": 4.7,
+      "motion": "push_soft",
+      "transition": "cut",
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Sa mère disait juste : ne touche pas aux plantes, ne cuisine pas.",
+          "file": "audio/koffi_04.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/02-amina.png",
+      "dur": 7.0,
+      "motion": "pull_soft",
+      "transition": "cut",
+      "sfx": "heartbeat",
+      "lines": [
+        {
+          "who": "AMINA",
+          "text": "Résultat : peur, silence, et du tissu sale pour se protéger.",
+          "file": "audio/amina_04.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/02-amina.png",
+      "dur": 2.6,
+      "motion": "hold_breath",
+      "transition": "cut",
+      "sfx": "impact",
+      "text": {
+        "value": "PEUR. SILENCE.",
+        "style": "kicker",
+        "emph": [
+          "PEUR",
+          "SILENCE"
+        ]
+      }
+    },
+    {
+      "image": "images/01-koffi.png",
+      "dur": 4.7,
+      "motion": "pan_right",
+      "transition": "cut",
+      "lines": [
+        {
+          "who": "KOFFI",
+          "text": "Un paquet de serviettes, c'est 500 à 1 000 FCFA.",
+          "file": "audio/koffi_05.mp3"
+        }
+      ]
+    },
+    {
+      "image": "images/04-prix.png",
+      "dur": 4.6,
+      "motion": "parallax_push",
+      "transition": "cut",
+      "sfx": "riser",
+      "text": {
+        "value": "500 À 1 000 FCFA",
+        "style": "cta",
+        "emph": [
+          "500 À 1 000 FCFA"
+        ]
+      },
+      "note": "LE PRIX DU SILENCE"
+    }
+  ]
+}
