@@ -141,3 +141,13 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- Montage vidéo elimarket ---------------------------------------------
+project/output/
+project/_selftest/
+project/**/_work/
+project/images/*.tmp
+tools/assets/*.wav
+tools/__pycache__/
+__pycache__/
+*.pyc

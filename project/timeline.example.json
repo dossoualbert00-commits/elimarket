@@ -1,0 +1,70 @@
+{
+  "_doc": "Timeline de montage elimarket. Copiez ce fichier, remplacez les images et le texte, puis : python3 tools/render.py project/timeline.json --aspects 9:16. Champs : image (chemin relatif au dossier du JSON), dur (secondes), motion (auto|zoom_in|zoom_out|push_soft|pull_soft|pan_right|pan_left|tilt_up|tilt_down|dolly_diag|dolly_diag_rev|parallax_push|hold_breath), transition (cut|fade|dissolve|slideleft|slideright|wipeup|circleopen|smoothleft — c'est la transition QUI AMÈNE le plan à l'écran), sfx (whoosh|riser|impact|pop|click|none), text.value / text.style (hook|kicker|body|cta) / text.emph (mots surlignés), vo (texte de la voix off, découpé automatiquement en sous-titres de 3 à 5 mots), vo_file (piste enregistrée, optionnel).",
+
+  "meta": {
+    "title": "elimarket — marketplace de confiance",
+    "handle": "@elimarket.africa",
+    "keywords": ["confiance", "vendeurs", "afrique"],
+    "brand": { "accent": "#FFC300", "secondary": "#0B2E4F" }
+  },
+
+  "audio": {
+    "music": "audio/bed.wav",
+    "voiceover": "",
+    "music_gain_db": -13.5
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "font": "Montserrat",
+    "body_font": "Inter",
+    "max_words": 4
+  },
+
+  "scenes": [
+    {
+      "image": "images/01-hook.jpg",
+      "dur": 2.4,
+      "motion": "zoom_in",
+      "transition": "cut",
+      "sfx": "impact",
+      "text": { "value": "Le marché de confiance", "style": "hook", "emph": ["confiance"] },
+      "vo": "Acheter en ligne en Afrique sans se faire arnaquer, c'est possible"
+    },
+    {
+      "image": "images/02-produits.jpg",
+      "dur": 2.2,
+      "motion": "auto",
+      "transition": "fade",
+      "sfx": "whoosh",
+      "text": { "value": "Des milliers de produits", "style": "body", "emph": ["produits"] },
+      "vo": "Des milliers de produits vérifiés, près de chez vous"
+    },
+    {
+      "image": "images/03-paiement.jpg",
+      "dur": 2.0,
+      "motion": "auto",
+      "transition": "cut",
+      "text": { "value": "Paiement sécurisé", "style": "body", "emph": ["sécurisé"] },
+      "vo": "Le paiement reste protégé jusqu'à la réception"
+    },
+    {
+      "image": "images/04-vendeurs.jpg",
+      "dur": 2.4,
+      "motion": "auto",
+      "transition": "slideleft",
+      "sfx": "riser",
+      "text": { "value": "Des vendeurs vérifiés", "style": "body", "emph": ["vendeurs"] },
+      "vo": "Chaque vendeur est vérifié, chaque avis vient d'un vrai client"
+    },
+    {
+      "image": "images/05-cta.jpg",
+      "dur": 2.6,
+      "motion": "auto",
+      "transition": "fade",
+      "sfx": "impact",
+      "text": { "value": "Rejoignez elimarket.africa", "style": "cta", "emph": ["elimarket.africa"] },
+      "vo": "Créez votre compte gratuitement et vendez dès aujourd'hui"
+    }
+  ]
+}
